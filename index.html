@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Photo Booth</title>
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#cfdccf;
+  font-family:'DM Sans',sans-serif;
+}
+
+.app{
+  width:340px;
+  background:#f3f6f2;
+  padding:15px;
+  border-radius:25px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+  text-align:center;
+}
+
+h2{
+  font-family:'Playfair Display',serif;
+  text-align:left;
+  margin:5px 10px;
+}
+
+.top{
+  display:flex;
+  justify-content:space-between;
+}
+
+.filters{
+  display:flex;
+  gap:8px;
+  overflow:auto;
+}
+
+.filter{
+  padding:6px 12px;
+  border-radius:20px;
+  background:#e5eae4;
+  font-size:12px;
+  cursor:pointer;
+}
+
+.filter.active{
+  background:#8fa190;
+  color:white;
+}
+
+video{
+  width:100%;
+  border-radius:15px;
+  margin-top:10px;
+  object-fit:cover;
+}
+
+.controls{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:10px;
+}
+
+.capture{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:#8fa190;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:28px;
+  color:white;
+  cursor:pointer;
+}
+
+.preview{
+  width:50px;
+  height:50px;
+  border-radius:10px;
+  background:#ddd;
+  background-size:cover;
+}
+
+.dots{
+  display:flex;
+  gap:6px;
+}
+
+.dot{
+  width:6px;
+  height:6px;
+  background:#c4c4c4;
+  border-radius:50%;
+}
+
+.dot.active{
+  background:#8fa190;
+}
+
+#countdown{
+  position:absolute;
+  font-size:60px;
+  color:white;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+}
+
+#retake{
+  margin-top:8px;
+  padding:8px;
+  border:none;
+  border-radius:10px;
+  background:#d9534f;
+  color:white;
+  cursor:pointer;
+}
+
+#download{
+  margin-top:8px;
+  padding:8px;
+  border:none;
+  border-radius:10px;
+  background:#5cb85c;
+  color:white;
+  cursor:pointer;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<div class="top">
+<h2>photo booth</h2>
+<div id="count">0 / 4</div>
+</div>
+
+<div class="filters">
+<div class="filter active" onclick="setFilter('none',this)">Natural</div>
+<div class="filter" onclick="setFilter('grayscale(1)',this)">B&W</div>
+<div class="filter" onclick="setFilter('sepia(0.5)',this)">Latte</div>
+<div class="filter" onclick="setFilter('hue-rotate(90deg)',this)">Forest</div>
+<div class="filter" onclick="setFilter('contrast(1.3)',this)">Crisp</div>
+</div>
+
+<video id="video" autoplay playsinline></video>
+
+<div id="countdown"></div>
+
+<div class="controls">
+<div class="preview" id="preview"></div>
+<div class="capture" onclick="startCountdown()">📸</div>
+<div class="dots" id="dots"></div>
+</div>
+
+<button id="retake" onclick="retake()">Retake</button>
+<button id="download" onclick="downloadStrip()">Download Strip</button>
+
+<canvas id="canvas" style="display:none;"></canvas>
+<canvas id="stripCanvas" style="display:none;"></canvas>
+
+</div>
+
+<script>
+
+const video=document.getElementById('video')
+const canvas=document.getElementById('canvas')
+const stripCanvas=document.getElementById('stripCanvas')
+const ctx=canvas.getContext('2d')
+const stripCtx=stripCanvas.getContext('2d')
+
+let photos=[]
+let currentIndex=0
+let filter='none'
+
+navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}})
+.then(stream=>video.srcObject=stream)
+
+function setFilter(f,el){
+  filter=f
+  video.style.filter=f
+  document.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'))
+  el.classList.add('active')
+}
+
+function startCountdown(){
+  let c=3
+  const cd=document.getElementById('countdown')
+  cd.innerText=c
+
+  let interval=setInterval(()=>{
+    c--
+    if(c==0){
+      clearInterval(interval)
+      cd.innerText=''
+      capture()
+    }else{
+      cd.innerText=c
+    }
+  },800)
+}
+
+function capture(){
+
+  const vw=video.videoWidth
+  const vh=video.videoHeight
+
+  canvas.width=vw
+  canvas.height=vh
+
+  ctx.filter=filter
+  ctx.drawImage(video,0,0,vw,vh)
+
+  let img=new Image()
+  img.src=canvas.toDataURL()
+
+  img.onload=()=>{
+    photos[currentIndex]={
+      img: img,
+      time: new Date()
+    }
+
+    document.getElementById('preview').style.backgroundImage=`url(${img.src})`
+
+    currentIndex++
+    updateUI()
+
+    if(currentIndex==4){
+      createStrip()
+      document.getElementById('download').style.display='block'
+    }
+  }
+}
+
+function retake(){
+  if(currentIndex>0){
+    currentIndex--
+    photos.pop()
+    updateUI()
+    document.getElementById('preview').style.backgroundImage=''
+  }
+}
+
+function updateUI(){
+  document.getElementById('count').innerText=currentIndex+" / 4"
+
+  const dots=document.getElementById('dots')
+  dots.innerHTML=''
+
+  for(let i=0;i<4;i++){
+    let d=document.createElement('div')
+    d.className='dot'
+    if(i<currentIndex) d.classList.add('active')
+    dots.appendChild(d)
+  }
+}
+
+function createStrip(){
+
+  const sw=640
+  const photoH=400
+  const gap=30
+  const pad=20
+
+  stripCanvas.width=sw
+  stripCanvas.height=(photoH+gap+50)*photos.length
+
+  stripCtx.fillStyle="#fdfaf5"
+  stripCtx.fillRect(0,0,stripCanvas.width,stripCanvas.height)
+
+  let y=0
+
+  photos.forEach(p=>{
+
+    stripCtx.drawImage(p.img,pad,y,sw-pad*2,photoH)
+
+    const date=p.time.toLocaleDateString('en-GB',{
+      day:'numeric',month:'short',year:'numeric'
+    })
+
+    const time=p.time.toLocaleTimeString([],{
+      hour:'2-digit',minute:'2-digit'
+    })
+
+    stripCtx.fillStyle="#8fa190"
+    stripCtx.font="14px DM Sans"
+    stripCtx.textAlign="center"
+
+    stripCtx.fillText(
+      date+" • "+time,
+      sw/2,
+      y+photoH+25
+    )
+
+    y+=photoH+gap+50
+  })
+}
+
+function downloadStrip(){
+  let a=document.createElement('a')
+  a.download='photostrip.png'
+  a.href=stripCanvas.toDataURL()
+  a.click()
+}
+
+updateUI()
+
+</script>
+
+</body>
+</html>
