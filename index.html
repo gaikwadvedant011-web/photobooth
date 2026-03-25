@@ -5,570 +5,248 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;1,300&display=swap" rel="stylesheet">
   <style>
     :root {
-      --sage: #8aab8e;
-      --sage-light: #b5cdb8;
-      --sage-dark: #5c7a61;
-      --cream: #f5f0e8;
-      --warm-white: #fdfaf5;
-      --mist: #dce8de;
-      --clay: #c9a98b;
-      --text-dark: #2e3b2f;
-      --text-mid: #5c6b5d;
-      --text-soft: #8fa190;
-      --glass: rgba(255,255,255,0.25);
-      --glass-border: rgba(255,255,255,0.45);
+      --sage:#8aab8e; --sage-light:#b5cdb8; --sage-dark:#5c7a61;
+      --cream:#f5f0e8; --warm-white:#fdfaf5; --mist:#dce8de;
+      --text-dark:#2e3b2f; --text-mid:#5c6b5d; --text-soft:#8fa190;
+      --glass:rgba(255,255,255,0.25); --glass-border:rgba(255,255,255,0.45);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      font-family:'DM Sans',sans-serif;
+      background:#d4e2d6;
+      min-height:100vh;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:20px;
+    }
+    .app{
+      width:100%;max-width:480px;
+      background:rgba(253,250,245,0.6);
+      backdrop-filter:blur(20px);
+      border-radius:30px;
+      padding:20px;
+      display:flex;flex-direction:column;gap:15px;
+    }
+    .header{display:flex;justify-content:space-between;}
+    .title{font-family:'Playfair Display';font-style:italic;font-size:24px;}
+    .photo-counter{font-size:12px;color:var(--text-soft);}
+
+    .filters{display:flex;gap:6px;overflow:auto;}
+    .filters button{
+      padding:8px 16px;border-radius:20px;border:none;cursor:pointer;
+      background:#eee;font-size:12px;
+    }
+    .filters .active{background:var(--sage);color:#fff;}
+
+    .video-wrap{position:relative;aspect-ratio:3/4;border-radius:20px;overflow:hidden;}
+    video{
+      width:100%;height:100%;
+      object-fit:cover;
+      transform:scaleX(-1);
     }
 
-    * { margin:0; padding:0; box-sizing:border-box; }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: #d4e2d6;
-      background-image:
-        radial-gradient(ellipse at 10% 20%, rgba(138,171,138,0.45) 0%, transparent 55%),
-        radial-gradient(ellipse at 90% 80%, rgba(201,169,139,0.3) 0%, transparent 50%),
-        radial-gradient(ellipse at 60% 10%, rgba(220,232,222,0.6) 0%, transparent 45%),
-        radial-gradient(ellipse at 30% 90%, rgba(181,205,184,0.4) 0%, transparent 40%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
+    #countdown{
+      position:absolute;inset:0;
+      display:flex;justify-content:center;align-items:center;
+      font-size:70px;color:#fff;
     }
 
-    /* Subtle grain overlay */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.6;
+    .shutter-row{display:flex;justify-content:center;align-items:center;gap:15px;}
+    .shutter{
+      width:70px;height:70px;border-radius:50%;
+      background:var(--sage);
+      display:flex;justify-content:center;align-items:center;
+      font-size:28px;color:#fff;cursor:pointer;
     }
 
-    .app {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: 480px;
-      background: rgba(253,250,245,0.55);
-      backdrop-filter: blur(24px) saturate(1.2);
-      -webkit-backdrop-filter: blur(24px) saturate(1.2);
-      border-radius: 32px;
-      border: 1px solid var(--glass-border);
-      box-shadow:
-        0 8px 32px rgba(46,59,47,0.12),
-        0 2px 8px rgba(46,59,47,0.06),
-        inset 0 1px 0 rgba(255,255,255,0.7);
-      padding: 26px 24px 30px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 18px;
-    }
+    .last-preview{width:50px;height:50px;border-radius:10px;overflow:hidden;}
+    .last-preview img{width:100%;height:100%;object-fit:cover;}
 
-    /* Header */
-    .header {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 4px;
-    }
+    .progress{display:flex;gap:6px;}
+    .dot{width:6px;height:6px;border-radius:50%;background:#ccc;}
+    .dot.filled{background:var(--sage);}
 
-    .title {
-      font-family: 'Playfair Display', serif;
-      font-style: italic;
-      font-weight: 300;
-      font-size: 26px;
-      color: var(--text-dark);
-      letter-spacing: 0.02em;
-    }
+    #stripCanvas{display:none;width:100%;border-radius:12px;background:#fff;}
+    #stripCanvas.show{display:block;}
 
-    .photo-counter {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-soft);
-      background: rgba(138,171,138,0.15);
-      border: 1px solid rgba(138,171,138,0.3);
-      border-radius: 20px;
-      padding: 4px 12px;
-      letter-spacing: 0.05em;
+    #downloadBtn{
+      display:none;padding:12px;border:none;border-radius:10px;
+      background:var(--sage);color:#fff;cursor:pointer;
     }
-
-    /* Filter pills */
-    .filters {
-      display: flex;
-      gap: 6px;
-      width: 100%;
-      overflow-x: auto;
-      padding-bottom: 2px;
-      scrollbar-width: none;
-    }
-    .filters::-webkit-scrollbar { display: none; }
-
-    .filters button {
-      flex-shrink: 0;
-      padding: 9px 20px;
-      border-radius: 20px;
-      border: 1px solid rgba(138,171,138,0.3);
-      background: rgba(255,255,255,0.5);
-      color: var(--text-mid);
-      cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      transition: all 0.25s ease;
-      white-space: nowrap;
-    }
-
-    .filters button:hover,
-    .filters button.active {
-      background: var(--sage);
-      border-color: var(--sage);
-      color: white;
-      box-shadow: 0 4px 12px rgba(138,171,138,0.4);
-      transform: translateY(-1px);
-    }
-
-    /* Video container */
-    .video-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 3 / 4;
-      border-radius: 26px;
-      overflow: hidden;
-      box-shadow:
-        0 12px 40px rgba(46,59,47,0.15),
-        0 2px 8px rgba(46,59,47,0.08);
-    }
-
-    video {
-      width: 100%;
-      height: 100%;
-      display: block;
-      border-radius: 26px;
-      object-fit: cover;
-      transform: scaleX(-1); /* Mirror preview so posing feels natural */
-    }
-
-    /* Countdown overlay */
-    #countdown {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Playfair Display', serif;
-      font-size: 80px;
-      font-weight: 400;
-      color: white;
-      text-shadow: 0 4px 30px rgba(0,0,0,0.3);
-      background: rgba(0,0,0,0.08);
-      backdrop-filter: blur(2px);
-      border-radius: 26px;
-      pointer-events: none;
-      transition: opacity 0.2s;
-    }
-    #countdown.visible { opacity: 1; }
-
-    /* Action buttons row (below video, always visible when needed) */
-    .action-row {
-      display: none;
-      gap: 12px;
-      width: 100%;
-    }
-    .action-row.show { display: flex; }
-
-    .action-row button {
-      flex: 1;
-      padding: 15px;
-      border: none;
-      border-radius: 18px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 15px;
-      font-weight: 500;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: all 0.2s ease;
-    }
-
-    .btn-retry {
-      background: rgba(46,59,47,0.08);
-      color: var(--text-dark);
-      border: 1.5px solid rgba(138,171,138,0.4);
-    }
-    .btn-retry:hover { background: rgba(46,59,47,0.14); transform: translateY(-1px); }
-
-    .btn-use {
-      background: linear-gradient(135deg, var(--sage), var(--sage-dark));
-      color: white;
-      box-shadow: 0 6px 18px rgba(92,122,97,0.4);
-    }
-    .btn-use:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(92,122,97,0.5); }
-
-    /* Shutter row */
-    .shutter-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      width: 100%;
-    }
-
-    .shutter {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.8);
-      background: linear-gradient(145deg, var(--sage), var(--sage-dark));
-      box-shadow:
-        0 6px 20px rgba(92,122,97,0.45),
-        0 2px 6px rgba(92,122,97,0.3),
-        inset 0 1px 0 rgba(255,255,255,0.3);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      transition: all 0.2s ease;
-    }
-    .shutter:hover {
-      transform: scale(1.06);
-      box-shadow: 0 8px 28px rgba(92,122,97,0.55);
-    }
-    .shutter:active { transform: scale(0.97); }
-
-    /* Last preview thumbnail */
-    .last-preview {
-      width: 58px;
-      height: 58px;
-      border-radius: 12px;
-      border: 2px solid rgba(255,255,255,0.7);
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(46,59,47,0.15);
-      background: var(--mist);
-    }
-    .last-preview img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-    }
-
-    /* Progress dots */
-    .progress {
-      display: flex;
-      gap: 8px;
-    }
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: rgba(138,171,138,0.3);
-      border: 1.5px solid rgba(138,171,138,0.5);
-      transition: all 0.3s ease;
-    }
-    .dot.filled {
-      background: var(--sage);
-      border-color: var(--sage);
-      box-shadow: 0 0 8px rgba(138,171,138,0.5);
-    }
-
-    /* Strip canvas */
-    #stripCanvas {
-      width: 100%;
-      border-radius: 18px;
-      background: white;
-      display: none;
-      box-shadow: 0 8px 24px rgba(46,59,47,0.12);
-    }
-    #stripCanvas.show { display: block; }
-
-    /* Download button */
-    #downloadBtn {
-      display: none;
-      width: 100%;
-      padding: 16px;
-      border-radius: 16px;
-      border: none;
-      background: linear-gradient(135deg, var(--sage), var(--sage-dark));
-      color: white;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(92,122,97,0.4);
-      transition: all 0.2s ease;
-    }
-    #downloadBtn.show { display: block; }
-    #downloadBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(92,122,97,0.5); }
-
-    /* Sticker */
-    .sticker {
-      position: absolute;
-      font-size: 28px;
-      cursor: grab;
-      display: none;
-      user-select: none;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-    }
+    #downloadBtn.show{display:block;}
   </style>
 </head>
+
 <body>
 <div class="app">
 
-  <!-- Header -->
-  <div class="header">
-    <span class="title">photo booth</span>
-    <span class="photo-counter" id="counterLabel">0 / 4</span>
+<div class="header">
+  <div class="title">photo booth</div>
+  <div id="counterLabel">0 / 4</div>
+</div>
+
+<div class="filters">
+  <button onclick="setFilter('none',this)" class="active">Natural</button>
+  <button onclick="setFilter('grayscale(100%)',this)">B&W</button>
+  <button onclick="setFilter('sepia(70%)',this)">Latte</button>
+</div>
+
+<div class="video-wrap">
+  <video id="video" autoplay playsinline></video>
+  <div id="countdown"></div>
+</div>
+
+<div class="shutter-row">
+  <div class="last-preview"><img id="lastImg"></div>
+  <div class="shutter" onclick="nextPhoto()">📸</div>
+  <div class="progress">
+    <div class="dot" id="d0"></div>
+    <div class="dot" id="d1"></div>
+    <div class="dot" id="d2"></div>
+    <div class="dot" id="d3"></div>
   </div>
+</div>
 
-  <!-- Filters -->
-  <div class="filters">
-    <button onclick="setFilter('none', this)" class="active">Natural</button>
-    <button onclick="setFilter('grayscale(100%)', this)">B&W</button>
-    <button onclick="setFilter('sepia(70%)', this)">Latte</button>
-    <button onclick="setFilter('hue-rotate(30deg) saturate(1.3)', this)">Forest</button>
-    <button onclick="setFilter('brightness(1.1) contrast(1.1)', this)">Crisp</button>
-    <button onclick="setFilter('saturate(0.5) brightness(1.05)', this)">Matte</button>
-  </div>
+<canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+<canvas id="stripCanvas"></canvas>
 
-  <!-- Video -->
-  <div class="video-wrap">
-    <video id="video" autoplay playsinline></video>
-    <div id="countdown"></div>
-  </div>
+<button id="downloadBtn" onclick="downloadStrip()">Download</button>
 
-  <!-- Retake / Keep — shown after each capture -->
-  <div class="action-row" id="actionRow">
-    <button class="btn-retry" onclick="retakePhoto()">↩ Retake</button>
-    <button class="btn-use" onclick="acceptPhoto()">✓ Keep Photo</button>
-  </div>
-
-  <!-- Shutter Row -->
-  <div class="shutter-row">
-    <div class="last-preview"><img id="lastImg" src=""></div>
-    <div class="shutter" onclick="nextPhoto()">📸</div>
-    <div class="progress">
-      <div class="dot" id="d0"></div>
-      <div class="dot" id="d1"></div>
-      <div class="dot" id="d2"></div>
-      <div class="dot" id="d3"></div>
-    </div>
-  </div>
-
-  <!-- Canvases (hidden) -->
-  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
-  <canvas id="stripCanvas" width="320" height="1300"></canvas>
-
-  <!-- Download -->
-  <button id="downloadBtn" onclick="downloadStrip()">↓ Save your strip</button>
-
-  <!-- Sticker -->
-  <div class="sticker" style="top:60px;left:20px;">🌿</div>
 </div>
 
 <script>
-  const video = document.getElementById('video')
-  const canvas = document.getElementById('canvas')
-  const stripCanvas = document.getElementById('stripCanvas')
-  const ctx = canvas.getContext('2d')
-  const stripCtx = stripCanvas.getContext('2d')
-  const countdownEl = document.getElementById('countdown')
-  const lastImg = document.getElementById('lastImg')
-  const sticker = document.querySelector('.sticker')
-  const actionRow = document.getElementById('actionRow')
-  const counterLabel = document.getElementById('counterLabel')
-  const downloadBtn = document.getElementById('downloadBtn')
 
-  let photos = [], currentFilter = "none", currentIndex = 0
+const video=document.getElementById('video')
+const canvas=document.getElementById('canvas')
+const ctx=canvas.getContext('2d')
+const stripCanvas=document.getElementById('stripCanvas')
+const stripCtx=stripCanvas.getContext('2d')
 
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-    .then(s => video.srcObject = s)
-    .catch(() => {})
+let photos=[]
+let currentIndex=0
+let currentFilter='none'
 
-  function setFilter(f, btn) {
-    currentFilter = f
-    video.style.filter = f
-    document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'))
-    if (btn) btn.classList.add('active')
-  }
+navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}})
+.then(s=>video.srcObject=s)
 
-  function updateDots() {
-    for (let i = 0; i < 4; i++) {
-      document.getElementById('d' + i).classList.toggle('filled', i < photos.length)
-    }
-    counterLabel.textContent = `${photos.length} / 4`
-  }
+function setFilter(f,el){
+  currentFilter=f
+  video.style.filter=f
+  document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'))
+  el.classList.add('active')
+}
 
-  function nextPhoto() {
-    if (currentIndex >= 4) { createStrip(); return }
-    countdown(3).then(capture)
-  }
+function nextPhoto(){
+  if(currentIndex>=4){createStrip();return}
+  countdown(3).then(capture)
+}
 
-  function countdown(sec) {
-    return new Promise(r => {
-      let c = sec
-      countdownEl.classList.add('visible')
-      let i = setInterval(() => {
-        countdownEl.innerText = c
-        c--
-        if (c < 0) {
-          clearInterval(i)
-          countdownEl.innerText = ''
-          countdownEl.classList.remove('visible')
-          r()
-        }
-      }, 1000)
-    })
-  }
-
-  function capture() {
-    ctx.save()
-    // Flip horizontally to un-mirror front camera output
-    ctx.translate(canvas.width, 0)
-    ctx.scale(-1, 1)
-    ctx.filter = currentFilter
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    ctx.restore()
-    let img = new Image()
-    img.src = canvas.toDataURL()
-    img.onload = () => {
-      photos[currentIndex] = img
-      lastImg.src = img.src
-      actionRow.classList.add('show')
-      sticker.style.display = 'block'
-      updateDots()
-    }
-  }
-
-  function acceptPhoto() {
-    actionRow.classList.remove('show')
-    currentIndex++
-    if (currentIndex >= 4) { createStrip(); return }
-    nextPhoto()
-  }
-
-  function retakePhoto() {
-    actionRow.classList.remove('show')
-    countdown(3).then(capture)
-  }
-
-  function createStrip() {
-    const sw = stripCanvas.width
-    const ph = 260, gap = 18, pad = 24
-
-    stripCanvas.height = pad * 2 + photos.length * (ph + gap) + 50
-
-    // Background
-    const bg = stripCtx.createLinearGradient(0, 0, 0, stripCanvas.height)
-    bg.addColorStop(0, '#f5f0e8')
-    bg.addColorStop(1, '#e8f0e9')
-    stripCtx.fillStyle = bg
-    stripCtx.fillRect(0, 0, sw, stripCanvas.height)
-
-    let y = pad
-    photos.forEach((img, idx) => {
-      // Photo shadow
-      stripCtx.shadowColor = 'rgba(46,59,47,0.15)'
-      stripCtx.shadowBlur = 12
-      stripCtx.shadowOffsetY = 4
-
-      // White frame
-      stripCtx.fillStyle = 'white'
-      roundRect(stripCtx, pad, y, sw - pad * 2, ph + 36, 12)
-      stripCtx.fill()
-
-      stripCtx.shadowColor = 'transparent'
-      stripCtx.shadowBlur = 0
-
-      // Photo
-      const iw = sw - pad * 2 - 16
-      stripCtx.save()
-      roundedClip(stripCtx, pad + 8, y + 8, iw, ph, 8)
-      stripCtx.drawImage(img, pad + 8, y + 8, iw, ph)
-      stripCtx.restore()
-
-      // Date & number
-      stripCtx.fillStyle = '#8fa190'
-      stripCtx.font = '500 10px DM Sans, sans-serif'
-      stripCtx.fillText(`${String(idx + 1).padStart(2, '0')}  ·  ${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})}`, pad + 10, y + ph + 24)
-
-      y += ph + gap + 36
-    })
-
-    // Branding
-    stripCtx.fillStyle = '#b5cdb8'
-    stripCtx.font = 'italic 300 13px Playfair Display, serif'
-    stripCtx.textAlign = 'center'
-    stripCtx.fillText('photo booth ♡', sw / 2, y + 18)
-    stripCtx.textAlign = 'left'
-
-    stripCanvas.classList.add('show')
-    downloadBtn.classList.add('show')
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath()
-    ctx.moveTo(x + r, y)
-    ctx.lineTo(x + w - r, y)
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-    ctx.lineTo(x + w, y + h - r)
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-    ctx.lineTo(x + r, y + h)
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-    ctx.lineTo(x, y + r)
-    ctx.quadraticCurveTo(x, y, x + r, y)
-    ctx.closePath()
-  }
-
-  function roundedClip(ctx, x, y, w, h, r) {
-    roundRect(ctx, x, y, w, h, r)
-    ctx.clip()
-  }
-
-  function downloadStrip() {
-    const a = document.createElement('a')
-    a.download = 'photo-strip.png'
-    a.href = stripCanvas.toDataURL('image/png')
-    a.click()
-  }
-
-  // Sticker drag
-  sticker.onmousedown = e => {
-    let sx = e.clientX - sticker.getBoundingClientRect().left
-    let sy = e.clientY - sticker.getBoundingClientRect().top
-    function move(e) {
-      sticker.style.left = e.pageX - sx + 'px'
-      sticker.style.top = e.pageY - sy + 'px'
-    }
-    document.addEventListener('mousemove', move)
-    document.onmouseup = () => {
-      document.removeEventListener('mousemove', move)
-      document.onmouseup = null
-    }
-  }
-
-  sticker.addEventListener('touchstart', e => {
-    let t = e.touches[0]
-    let sx = t.clientX - sticker.getBoundingClientRect().left
-    let sy = t.clientY - sticker.getBoundingClientRect().top
-    function move(e) {
-      let t = e.touches[0]
-      sticker.style.left = t.pageX - sx + 'px'
-      sticker.style.top = t.pageY - sy + 'px'
-    }
-    document.addEventListener('touchmove', move)
-    document.ontouchend = () => {
-      document.removeEventListener('touchmove', move)
-      document.ontouchend = null
-    }
+function countdown(sec){
+  return new Promise(r=>{
+    let c=sec
+    let el=document.getElementById('countdown')
+    let i=setInterval(()=>{
+      el.innerText=c
+      c--
+      if(c<0){clearInterval(i);el.innerText='';r()}
+    },800)
   })
+}
+
+function capture(){
+
+  const vw=video.videoWidth
+  const vh=video.videoHeight
+
+  canvas.width=vw
+  canvas.height=vh
+
+  ctx.save()
+  ctx.translate(vw,0)
+  ctx.scale(-1,1)
+  ctx.filter=currentFilter
+  ctx.drawImage(video,0,0,vw,vh)
+  ctx.restore()
+
+  let img=new Image()
+  img.src=canvas.toDataURL()
+
+  img.onload=()=>{
+    photos[currentIndex]={
+      img:img,
+      time:new Date()
+    }
+
+    document.getElementById('lastImg').src=img.src
+    currentIndex++
+    updateDots()
+
+    if(currentIndex==4){
+      createStrip()
+      document.getElementById('downloadBtn').classList.add('show')
+    }
+  }
+}
+
+function updateDots(){
+  document.getElementById('counterLabel').innerText=currentIndex+" / 4"
+  for(let i=0;i<4;i++){
+    document.getElementById('d'+i).classList.toggle('filled',i<currentIndex)
+  }
+}
+
+function createStrip(){
+
+  const sw=640
+  const ph=400
+  const gap=30
+  const pad=20
+
+  stripCanvas.width=sw
+  stripCanvas.height=(ph+gap+50)*photos.length
+
+  stripCtx.fillStyle="#fdfaf5"
+  stripCtx.fillRect(0,0,sw,stripCanvas.height)
+
+  let y=0
+
+  photos.forEach((p,idx)=>{
+
+    stripCtx.drawImage(p.img,pad,y,sw-pad*2,ph)
+
+    const date=p.time.toLocaleDateString('en-GB',{
+      day:'numeric',month:'short',year:'numeric'
+    })
+
+    const time=p.time.toLocaleTimeString([],{
+      hour:'2-digit',minute:'2-digit'
+    })
+
+    stripCtx.fillStyle="#8fa190"
+    stripCtx.font="14px DM Sans"
+    stripCtx.textAlign="center"
+
+    stripCtx.fillText(
+      `${String(idx+1).padStart(2,'0')} • ${date} • ${time}`,
+      sw/2,
+      y+ph+25
+    )
+
+    y+=ph+gap+50
+  })
+}
+
+function downloadStrip(){
+  let a=document.createElement('a')
+  a.download='photostrip.png'
+  a.href=stripCanvas.toDataURL()
+  a.click()
+}
+
+updateDots()
+
 </script>
+
 </body>
 </html>
