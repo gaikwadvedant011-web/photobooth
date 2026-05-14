@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Photo Booth</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:ital,wght@0,400;1,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #8b5e3c; /* Warm Cedar */
+      --primary-light: #b5835a; /* Sandalwood */
+      --accent: #d4a373; /* Muted Gold */
+      --bg-warm: #f5ebe0; /* Parchment */
+      --text-main: #3d2b1f; /* Dark Espresso */
+      --text-dim: #7f5539; /* Muted Cocoa */
+      --glass: rgba(255, 248, 240, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.7);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, #edede9 0%, #d6ccc2 50%, #f5ebe0 100%);
+      background-attachment: fixed;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      color: var(--text-main);
+    }
+
+
+    .app {
+      width: 100%;
+      max-width: 500px;
+      background: var(--glass);
+      backdrop-filter: blur(25px) saturate(180%);
+      -webkit-backdrop-filter: blur(25px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 40px;
+      padding: 30px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .title {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-style: italic;
+      font-size: 32px;
+      background: linear-gradient(45deg, var(--text-main), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    #counterLabel {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .control-group { display: flex; flex-direction: column; gap: 5px; }
+
+    .modes, .filters {
+      display: flex;
+      background: rgba(0,0,0,0.05);
+      padding: 4px;
+      border-radius: 16px;
+      gap: 4px;
+    }
+
+    .modes button, .filters button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+    }
+
+    .modes button.active, .filters button.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .video-wrap {
+      position: relative;
+      aspect-ratio: 3/4;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+      border: 4px solid #fff;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    #countdown {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 120px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(0,0,0,0.3);
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .shutter-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 5px;
+    }
+
+    .shutter-container {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .shutter {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: #fff;
+      border: 8px solid var(--primary-light);
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      transition: all 0.2s;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .shutter:active { transform: scale(0.92); }
+    .shutter:hover { border-color: var(--primary); }
+
+    .last-preview {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      background: #eee;
+    }
+    .last-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .retake-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: none;
+      background: #fff;
+      color: var(--text-main);
+      cursor: pointer;
+      font-size: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+    }
+    .retake-btn:active { transform: rotate(-90deg) scale(0.9); }
+
+    .progress-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress { display: flex; gap: 8px; }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.1);
+      transition: all 0.3s;
+    }
+    .dot.filled {
+      background: var(--primary);
+      transform: scale(1.2);
+      box-shadow: 0 0 10px var(--primary-light);
+    }
+
+    #stripCanvas {
+      display: none;
+      width: 100%;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      margin-top: 20px;
+      border: 8px solid #fff;
+    }
+    #stripCanvas.show { display: block; animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #downloadBtn {
+      display: none;
+      width: 100%;
+      padding: 20px;
+      border: none;
+      border-radius: 20px;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 18px;
+      margin-top: 15px;
+      box-shadow: 0 10px 20px rgba(139, 94, 60, 0.2);
+      transition: all 0.3s;
+    }
+    #downloadBtn:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(139, 94, 60, 0.3); }
+
+    #downloadBtn:active { transform: translateY(0); }
+    #downloadBtn.show { display: block; }
+
+
+
+  </style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="title">photo booth</div>
+    <div id="counterLabel">0 / 4</div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Strip Mode</div>
+    <div class="modes">
+      <button onclick="setTotalPhotos(1,this)">Single</button>
+      <button onclick="setTotalPhotos(2,this)">Dual</button>
+      <button onclick="setTotalPhotos(3,this)">Triple</button>
+      <button onclick="setTotalPhotos(4,this)" class="active">Quad</button>
+    </div>
+  </div>
+
+  <div class="control-group">
+    <div class="section-label">Art Filter</div>
+    <div class="filters">
+      <button onclick="setFilter('none',this)" class="active">Natural</button>
+      <button onclick="setFilter('grayscale(100%)',this)">B&W</button>
+      <button onclick="setFilter('sepia(70%)',this)">Latte</button>
+    </div>
+  </div>
+
+  <div class="video-wrap">
+    <video id="video" autoplay playsinline></video>
+    <div id="countdown"></div>
+  </div>
+
+  <div class="shutter-row">
+    <div class="last-preview" title="Last photo preview">
+      <img id="lastImg">
+    </div>
+    
+    <div class="shutter-container">
+      <div class="shutter" onclick="nextPhoto()">📸</div>
+    </div>
+
+    <button class="retake-btn" onclick="retakeLast()" title="Retake last photo">↺</button>
+  </div>
+
+  <div class="progress-container">
+    <div class="progress" id="progressDots"></div>
+  </div>
+
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+  <canvas id="stripCanvas"></canvas>
+
+  <button id="downloadBtn" onclick="downloadStrip()">✨ Save Your Memories</button>
+
+</div>
+
+
+<script>
+
+const video=document.getElementById('video')
+const canvas=document.getElementById('canvas')
+const ctx=canvas.getContext('2d')
+const stripCanvas=document.getElementById('stripCanvas')
+const stripCtx=stripCanvas.getContext('2d')
+
+let photos=[]
+let currentIndex=0
+let totalPhotos=4
+let currentFilter='none'
+
+
+navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}})
+.then(s=>video.srcObject=s)
+
+function setFilter(f,el){
+  currentFilter=f
+  video.style.filter=f
+  document.querySelectorAll('.filters button').forEach(b=>b.classList.remove('active'))
+  el.classList.add('active')
+}
+
+function nextPhoto(){
+  if(currentIndex>=totalPhotos){createStrip();return}
+  countdown(3).then(capture)
+}
+
+function setTotalPhotos(n,el){
+  totalPhotos=n
+  photos=[]
+  currentIndex=0
+  document.querySelectorAll('.modes button').forEach(b=>b.classList.remove('active'))
+  el.classList.add('active')
+  
+  // Reset UI
+  document.getElementById('stripCanvas').classList.remove('show')
+  document.getElementById('downloadBtn').classList.remove('show')
+  document.getElementById('lastImg').src=''
+  
+  updateDots()
+}
+
+function retakeLast(){
+  if(currentIndex > 0){
+    currentIndex--
+    photos.pop()
+    
+    // Update preview to the previous photo, or clear if none
+    if(photos.length > 0){
+      document.getElementById('lastImg').src = photos[photos.length-1].img.src
+    } else {
+      document.getElementById('lastImg').src = ''
+    }
+    
+    // Hide strip results to allow finishing the new sequence
+    document.getElementById('stripCanvas').classList.remove('show')
+    document.getElementById('downloadBtn').classList.remove('show')
+    
+    updateDots()
+  }
+}
+
+
+
+function countdown(sec){
+  return new Promise(r=>{
+    let c=sec
+    let el=document.getElementById('countdown')
+    let i=setInterval(()=>{
+      el.innerText=c
+      c--
+      if(c<0){clearInterval(i);el.innerText='';r()}
+    },800)
+  })
+}
+
+function capture(){
+
+  const vw=video.videoWidth
+  const vh=video.videoHeight
+  
+  // Target aspect ratio 3:2 (Landscape)
+  const targetRatio = 3/2
+  let drawW, drawH, sx, sy
+
+  if (vw / vh > targetRatio) {
+    drawH = vh
+    drawW = vh * targetRatio
+    sx = (vw - drawW) / 2
+    sy = 0
+  } else {
+    drawW = vw
+    drawH = vw / targetRatio
+    sx = 0
+    sy = (vh - drawH) / 2
+  }
+
+  canvas.width=600
+  canvas.height=400
+
+  ctx.save()
+  // Mirroring
+  ctx.translate(600, 0)
+  ctx.scale(-1, 1)
+  
+  ctx.filter=currentFilter
+  // Draw only the cropped portion
+  ctx.drawImage(video, sx, sy, drawW, drawH, 0, 0, 600, 400)
+  ctx.restore()
+
+  let img=new Image()
+  img.src=canvas.toDataURL()
+
+  img.onload=()=>{
+    photos[currentIndex]={
+      img:img,
+      time:new Date()
+    }
+
+    document.getElementById('lastImg').src=img.src
+    currentIndex++
+    updateDots()
+    
+    if(currentIndex==totalPhotos){
+      createStrip()
+      document.getElementById('downloadBtn').classList.add('show')
+      document.getElementById('stripCanvas').classList.add('show')
+      document.getElementById('stripCanvas').scrollIntoView({behavior:'smooth'})
+    }
+  }
+}
+
+function updateDots(){
+  document.getElementById('counterLabel').innerText=currentIndex+" / "+totalPhotos
+  const container=document.getElementById('progressDots')
+  container.innerHTML=''
+  for(let i=0;i<totalPhotos;i++){
+    const dot=document.createElement('div')
+    dot.className='dot' + (i<currentIndex?' filled':'')
+    container.appendChild(dot)
+  }
+}
+
+
+function createStrip(){
+  const sw = 800 // Strip width
+  const ph = 480 // Photo height (maintaining 3:2 with 720 width inside)
+  const pw = 720 // Photo width
+  const margin = 40 // Margin around photos
+  const textSpace = 60 // Space for text below each photo
+  const topPad = 60 // Top padding of the strip
+  const bottomPad = 40 // Bottom padding of the strip
+
+  stripCanvas.width = sw
+  stripCanvas.height = topPad + (ph + textSpace) * photos.length + (margin * (photos.length - 1)) + bottomPad
+
+  // Pure white background for the "proper white strip" look
+  stripCtx.fillStyle = "#ffffff"
+  stripCtx.fillRect(0, 0, sw, stripCanvas.height)
+
+  let y = topPad
+
+  photos.forEach((p, idx) => {
+    // Center the photo horizontally: (sw - pw) / 2
+    const x = (sw - pw) / 2
+    
+    // Draw photo
+    stripCtx.drawImage(p.img, x, y, pw, ph)
+
+    // Date/Time formatting
+    const date = p.time.toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    })
+
+    const time = p.time.toLocaleTimeString([], {
+      hour: '2-digit', minute: '2-digit', hour12: true
+    }).toLowerCase()
+
+    // Text styling
+    stripCtx.fillStyle = "#7f5539"
+    stripCtx.font = "italic 500 18px 'DM Sans', sans-serif"
+    stripCtx.textAlign = "center"
+
+
+    const label = `${String(idx + 1).padStart(2, '0')} • ${date} • ${time}`
+    stripCtx.fillText(label, sw / 2, y + ph + 35)
+
+    // Move Y for next photo
+    y += ph + textSpace + margin
+  })
+}
+
+function downloadStrip(){
+  let a=document.createElement('a')
+  a.download='photostrip.png'
+  a.href=stripCanvas.toDataURL()
+  a.click()
+}
+
+updateDots()
+
+</script>
+
+</body>
+</html>
